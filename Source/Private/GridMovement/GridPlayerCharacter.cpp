@@ -11,7 +11,7 @@
 // Sets default values
 AGridPlayerCharacter::AGridPlayerCharacter()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+ 	// Set this character to call Tick() every frame.
 	PrimaryActorTick.bCanEverTick = true;
 
     bUseControllerRotationYaw = false;
@@ -44,14 +44,22 @@ void AGridPlayerCharacter::Tick(float DeltaTime)
     // SMOOTH MOVEMENT
     if (bIsMoving)
     {
-        FVector CurrentLocation = GetActorLocation();
-        FVector NewLocation = FMath::VInterpTo(CurrentLocation, TargetLocation, DeltaTime, MovementInterpSpeed);
+        MoveElapsed += DeltaTime;
+        
+        float Alpha = FMath::Clamp(MoveElapsed / MoveDuration, 0.f, 1.f);
+
+        // Generic Movement
+        //FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, Alpha);
+
+        // Ease In and Out System (For natural looking movement)
+        float SmoothAlpha = FMath::InterpEaseInOut(0.f, 1.f, Alpha, 2.0f); // Last param = curve strength
+        FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, SmoothAlpha);
+
         SetActorLocation(NewLocation);
 
-        // If close enough, snap to target
-        if (FVector::Dist(NewLocation, TargetLocation) < 0.5f)
+        if (Alpha >= 1.f)
         {
-            SetActorLocation(TargetLocation); // Snap to final position
+            //SetActorLocation(TargetLocation); // Final snap
             bIsMoving = false;
             bCanMove = true;
         }
@@ -60,19 +68,32 @@ void AGridPlayerCharacter::Tick(float DeltaTime)
     // SMOOTH ROTATION
     if (bIsRotating)
     {
-        FRotator CurrentRot = GetActorRotation();
-        FRotator NewRot = FMath::RInterpTo(CurrentRot, TargetRotation, DeltaTime, RotationInterpSpeed);
-        SetActorRotation(NewRot);
+        RotationElapsed += DeltaTime;
+        float Alpha = FMath::Clamp(RotationElapsed / RotationDuration, 0.f, 1.f);
 
-        // If close enough, snap to target
-        if (FMath::Abs((NewRot - TargetRotation).Yaw) < 0.5f)
+        // Optional: easing
+        float SmoothAlpha = FMath::InterpEaseInOut(0.f, 1.f, Alpha, 2.0f);
+
+        // Interpolate rotation manually
+        FRotator NewRotation = FMath::Lerp(StartRotation, TargetRotation, SmoothAlpha);
+        SetActorRotation(NewRotation);
+
+        if (Alpha >= 1.f)
         {
-            SetActorRotation(TargetRotation); // Snap to final rotation
+            SetActorRotation(TargetRotation); // Final snap
             bIsRotating = false;
             bCanMove = true;
         }
+
+        // Debug Rotation
+        GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow,
+            FString::Printf(TEXT("Alpha: %.2f | Yaw: %.2f"), Alpha, NewRotation.Yaw));
     }
 
+
+    // Debug
+
+    // Debug Location
     FVector Location = GetActorLocation();
     // Print to screen for 5 seconds, white color
     GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White,
@@ -102,7 +123,9 @@ void AGridPlayerCharacter::MoveForward(const FInputActionValue& Value)
     float InputValue = Value.Get<float>();
     if (InputValue > 0.1f)
     {
-        TargetLocation = GetActorLocation() + GetActorForwardVector() * GridStepDistance;
+        StartLocation = GetActorLocation();
+        TargetLocation = StartLocation + GetActorForwardVector() * GridStepDistance;
+        MoveElapsed = 0.f;
         bIsMoving = true;
         bCanMove = false;
     }
@@ -115,7 +138,9 @@ void AGridPlayerCharacter::MoveBackward(const FInputActionValue& Value)
     float InputValue = Value.Get<float>();
     if (InputValue > 0.1f)
     {
-        TargetLocation = GetActorLocation() - GetActorForwardVector() * GridStepDistance;
+        StartLocation = GetActorLocation();
+        TargetLocation = StartLocation - GetActorForwardVector() * GridStepDistance;
+        MoveElapsed = 0.f;
         bIsMoving = true;
         bCanMove = false;
     }
@@ -128,8 +153,9 @@ void AGridPlayerCharacter::TurnLeft(const FInputActionValue& Value)
     float InputValue = Value.Get<float>();
     if (InputValue > 0.1f)
     {
-        FRotator CurrentRot = GetActorRotation();
-        TargetRotation = FRotator(0.0f, CurrentRot.Yaw - RotationAngle, 0.0f);
+        StartRotation = GetActorRotation();
+        TargetRotation = FRotator(0.f, StartRotation.Yaw - RotationAngle, 0.f);
+        RotationElapsed = 0.f;
         bIsRotating = true;
         bCanMove = false;
     }
@@ -142,15 +168,11 @@ void AGridPlayerCharacter::TurnRight(const FInputActionValue& Value)
     float InputValue = Value.Get<float>();
     if (InputValue > 0.1f)
     {
-        FRotator CurrentRot = GetActorRotation();
-        TargetRotation = FRotator(0.0f, CurrentRot.Yaw + RotationAngle, 0.0f);
+        StartRotation = GetActorRotation();
+        TargetRotation = FRotator(0.f, StartRotation.Yaw + RotationAngle, 0.f);
+        RotationElapsed = 0.f;
         bIsRotating = true;
         bCanMove = false;
     }
-}
-
-void AGridPlayerCharacter::ResetMove()
-{
-    bCanMove = true;
 }
 

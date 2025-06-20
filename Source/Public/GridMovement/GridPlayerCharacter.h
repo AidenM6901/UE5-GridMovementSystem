@@ -29,22 +29,23 @@ protected:
 	void TurnLeft(const FInputActionValue& Value);
 	void TurnRight(const FInputActionValue& Value);
 
-	// Cooldown reset
-	void ResetMove();
-
 	// Variables
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
 	bool bCanMove = true;
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
-	float GridStepDistance = 500.f;
+	float GridStepDistance = 200.f;
 	UPROPERTY(EditDefaultsOnly, Category = "Movement")
 	float RotationAngle = 90.f;
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+	float MovementCooldown = 1.f;
 
 	// Target values to interpolate to
 	FVector TargetLocation;
 	FRotator TargetRotation;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 	bool bIsMoving = false;
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 	bool bIsRotating = false;
 
 	// Configurable speed values
@@ -53,6 +54,20 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float RotationInterpSpeed = 5.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float MoveDuration = 0.2f;       // Time to complete one step
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float MoveElapsed = 0.f;
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	FVector StartLocation;
+
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float RotationDuration = 0.2f;      // How long to complete a 90° turn
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float RotationElapsed = 0.f;
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	FRotator StartRotation;
 
 	// Input system properties
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
